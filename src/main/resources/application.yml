@@ -1,4 +1,4 @@
-spring:
+﻿spring:
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/todaydev
     username: todaydev
@@ -15,17 +15,13 @@ spring:
       host: localhost
       port: 6379
 
-  security:
-    user:
-      name: none
-
 server:
   port: 8080
 
 jwt:
   secret: ${JWT_SECRET:dev-secret-key-must-be-at-least-32-characters-long}
-  access-token-expiry: 1800       # 30분 (초)
-  refresh-token-expiry: 1209600   # 14일 (초)
+  access-token-expiry: 1800
+  refresh-token-expiry: 1209600
 
 external:
   github:
@@ -38,6 +34,47 @@ external:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     base-url: https://generativelanguage.googleapis.com
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:5173
+    allowed-methods:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - OPTIONS
+    allowed-headers:
+      - Authorization
+      - Content-Type
+      - X-Trace-Id
+    exposed-headers:
+      - X-Trace-Id
+    allow-credentials: true
+    max-age: 3600
+
+  redis:
+    keys:
+      refresh-token:
+        prefix: refresh
+        ttl-seconds: 1209600
+      api-cache:
+        prefix: api-cache
+        ttl-seconds: 1800
+      ai-summary-cache:
+        prefix: ai-summary
+        ttl-seconds: 86400
+      progress-buffer:
+        prefix: progress
+        ttl-seconds: 600
+      stream-token:
+        prefix: stream-token
+        ttl-seconds: 180
+      briefing-in-progress:
+        prefix: briefing-inprogress
+        ttl-seconds: 600
 
 logging:
   level:

@@ -1,0 +1,638 @@
+# API Contract
+
+이 문서는 `오늘의 개발` 백엔드와 프론트엔드가 반드시 공유해야 하는 API 계약입니다. 구현 중 백엔드 응답 구조, 에러 포맷, 상태값, SSE 이벤트 이름을 임의로 바꾸지 않습니다.
+
+## 1. 기본 원칙
+
+- API 계약은 백엔드와 프론트엔드 모두 동일하게 따른다.
+- 계약 변경이 필요하면 백엔드/프론트 문서를 함께 수정한 뒤 구현한다.
+- 응답 필드 이름은 camelCase를 사용한다.
+- 날짜/시간은 ISO-8601 문자열을 사용한다.
+- 금액, 점수, 개수처럼 의미가 있는 숫자는 단위를 문서나 필드명으로 명확히 한다.
+- `null`과 빈 배열/빈 문자열의 의미를 구분한다.
+- Entity를 그대로 응답하지 않고 API 응답 DTO를 사용한다.
+
+## 2. 공통 성공 응답
+
+단건 응답:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+목록 응답:
+
+```json
+{
+  "success": true,
+  "data": [],
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+페이징 응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [],
+    "page": 0,
+    "size": 20,
+    "totalElements": 0,
+    "totalPages": 0,
+    "hasNext": false
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- 성공 응답은 `success: true`를 사용한다.
+- 실제 응답 본문은 항상 `data` 안에 둔다.
+- 삭제 성공처럼 본문이 거의 없는 경우에도 `data`는 `null` 또는 간단한 결과 객체로 명시한다.
+
+## 3. 공통 에러 응답
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "AUTH_INVALID_CREDENTIALS",
+    "message": "이메일 또는 비밀번호가 올바르지 않습니다.",
+    "details": [],
+    "traceId": "01HX0000000000000000000000"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+Validation 에러:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "요청 값이 올바르지 않습니다.",
+    "details": [
+      {
+        "field": "email",
+        "reason": "올바른 이메일 형식이 아닙니다."
+      }
+    ],
+    "traceId": "01HX0000000000000000000000"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+보안 규칙:
+
+- stack trace를 응답에 포함하지 않는다.
+- exception class name을 응답에 포함하지 않는다.
+- SQL, 내부 파일 경로, 서버 경로를 응답에 포함하지 않는다.
+- token, password, API key, authorization header를 응답에 포함하지 않는다.
+- raw exception message를 그대로 사용자에게 전달하지 않는다.
+
+## 4. HTTP Status 기준
+
+- `200 OK`: 조회/수정 성공
+- `201 Created`: 생성 성공
+- `202 Accepted`: 긴 작업 생성 요청 접수
+- `204 No Content`: 본문 없는 삭제 성공이 필요할 때만 사용
+- `400 Bad Request`: 요청 형식 또는 값 오류
+- `401 Unauthorized`: 인증 없음 또는 access token 만료/invalid
+- `403 Forbidden`: 인증은 됐지만 권한 없음
+- `404 Not Found`: 리소스 없음
+- `409 Conflict`: 중복 요청, 이미 진행 중인 브리핑, 중복 관심사
+- `429 Too Many Requests`: rate limit
+- `500 Internal Server Error`: 서버 내부 장애
+- `502 Bad Gateway`: 외부 API 오류
+- `503 Service Unavailable`: 외부 서비스 일시 불가
+- `504 Gateway Timeout`: 외부 API timeout
+
+## 5. Error Code 기준
+
+공통:
+
+- `VALIDATION_FAILED`
+- `INVALID_REQUEST`
+- `RESOURCE_NOT_FOUND`
+- `CONFLICT`
+- `INTERNAL_SERVER_ERROR`
+
+인증:
+
+- `AUTH_INVALID_CREDENTIALS`
+- `AUTH_TOKEN_MISSING`
+- `AUTH_TOKEN_INVALID`
+- `AUTH_TOKEN_EXPIRED`
+- `AUTH_REFRESH_TOKEN_INVALID`
+- `AUTH_FORBIDDEN`
+
+관심사:
+
+- `PREFERENCE_KEYWORD_DUPLICATED`
+- `PREFERENCE_KEYWORD_NOT_FOUND`
+- `PREFERENCE_REPOSITORY_DUPLICATED`
+- `PREFERENCE_REPOSITORY_NOT_FOUND`
+- `PREFERENCE_REPOSITORY_FORMAT_INVALID`
+
+브리핑:
+
+- `BRIEFING_NOT_FOUND`
+- `BRIEFING_ALREADY_IN_PROGRESS`
+- `BRIEFING_CREATE_FAILED`
+- `BRIEFING_PARTIAL_CREATED`
+- `BRIEFING_SUMMARY_FAILED`
+
+외부 API:
+
+- `EXTERNAL_GITHUB_FAILED`
+- `EXTERNAL_HACKER_NEWS_FAILED`
+- `EXTERNAL_DEVTO_FAILED`
+- `EXTERNAL_RATE_LIMITED`
+- `EXTERNAL_TIMEOUT`
+
+AI:
+
+- `AI_SUMMARY_FAILED`
+- `AI_RATE_LIMITED`
+- `AI_TIMEOUT`
+
+SSE:
+
+- `STREAM_TOKEN_INVALID`
+- `STREAM_TOKEN_EXPIRED`
+- `STREAM_NOT_FOUND`
+
+## 6. 공통 Enum
+
+Briefing status:
+
+```text
+GENERATING
+COMPLETED
+PARTIAL
+SUMMARY_FAILED
+FAILED
+```
+
+Source:
+
+```text
+GITHUB
+HACKER_NEWS
+DEVTO
+AI
+```
+
+Progress step:
+
+```text
+BRIEFING_REQUESTED
+GITHUB_COLLECTING
+GITHUB_COLLECTED
+HACKER_NEWS_COLLECTING
+HACKER_NEWS_COLLECTED
+DEVTO_COLLECTING
+DEVTO_COLLECTED
+FILTERING
+SCORING
+AI_SUMMARIZING
+SAVING
+DONE
+PARTIAL_DONE
+FAILED
+```
+
+## 7. Auth API
+
+### POST `/api/auth/signup`
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123!"
+}
+```
+
+Response `201`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "userId": 1,
+    "email": "user@example.com"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### POST `/api/auth/login`
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "password123!"
+}
+```
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "access-token",
+    "tokenType": "Bearer",
+    "expiresIn": 1800,
+    "user": {
+      "userId": 1,
+      "email": "user@example.com"
+    }
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- refresh token은 가능하면 HttpOnly cookie로 내려준다.
+- access token은 응답 body에 포함할 수 있다.
+- password hash는 절대 응답하지 않는다.
+
+### POST `/api/auth/refresh`
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "accessToken": "new-access-token",
+    "tokenType": "Bearer",
+    "expiresIn": 1800
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### POST `/api/auth/logout`
+
+Response `200`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "loggedOut": true
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+## 8. Preferences API
+
+### GET `/api/preferences/me`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "keywords": [
+      {
+        "keywordId": 1,
+        "keyword": "Spring",
+        "weight": 5,
+        "createdAt": "2026-05-21T09:00:00+09:00"
+      }
+    ],
+    "repositories": [
+      {
+        "repositoryId": 1,
+        "owner": "spring-projects",
+        "repoName": "spring-framework",
+        "createdAt": "2026-05-21T09:00:00+09:00"
+      }
+    ]
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### POST `/api/preferences/me/keywords`
+
+Request:
+
+```json
+{
+  "keyword": "WebFlux",
+  "weight": 5
+}
+```
+
+### DELETE `/api/preferences/me/keywords/{keywordId}`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### POST `/api/preferences/me/repositories`
+
+Request:
+
+```json
+{
+  "owner": "spring-projects",
+  "repoName": "spring-framework"
+}
+```
+
+규칙:
+
+- `owner/repoName` 문자열 하나로 받지 않고 `owner`, `repoName`을 분리한다.
+- 프론트에서 `owner/repo` 입력을 제공하더라도 API 요청 전 분리한다.
+
+## 9. Briefings API
+
+### POST `/api/briefings`
+
+Response `202`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "briefingId": 100,
+    "status": "GENERATING",
+    "createdAt": "2026-05-21T09:00:00+09:00"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- 브리핑 생성은 오래 걸릴 수 있으므로 요청 접수 후 `202 Accepted`를 우선 사용한다.
+- 이미 진행 중인 브리핑이 있으면 `409`와 `BRIEFING_ALREADY_IN_PROGRESS`를 반환한다.
+
+### GET `/api/briefings`
+
+Query:
+
+```text
+page=0&size=20
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "briefingId": 100,
+        "title": "오늘의 개발 브리핑",
+        "summary": "오늘은 Spring과 AI 도구 업데이트가 주요 흐름입니다.",
+        "status": "COMPLETED",
+        "generatedAt": "2026-05-21T09:00:00+09:00",
+        "itemCount": 12
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### GET `/api/briefings/{briefingId}`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "briefingId": 100,
+    "title": "오늘의 개발 브리핑",
+    "summary": "오늘은 Spring과 AI 도구 업데이트가 주요 흐름입니다.",
+    "status": "COMPLETED",
+    "generatedAt": "2026-05-21T09:00:00+09:00",
+    "sections": [
+      {
+        "source": "GITHUB",
+        "status": "COMPLETED",
+        "items": [
+          {
+            "itemId": 1,
+            "source": "GITHUB",
+            "externalId": "release-1",
+            "title": "Spring Framework Release",
+            "url": "https://github.com/spring-projects/spring-framework",
+            "summary": "주요 변경사항 요약",
+            "score": 92.5,
+            "publishedAt": "2026-05-21T09:00:00+09:00",
+            "metadata": {
+              "stars": 1234,
+              "comments": 12,
+              "tags": ["spring", "java"]
+            },
+            "saved": false
+          }
+        ]
+      }
+    ]
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- source별 추가 정보는 `metadata`에 둔다.
+- 프론트는 `source`에 따라 metadata를 다르게 표현할 수 있다.
+- `metadata`에는 민감정보를 넣지 않는다.
+
+## 10. SSE API
+
+### POST `/api/briefings/{briefingId}/stream-token`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "streamToken": "short-lived-stream-token",
+    "expiresIn": 180
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- stream token은 짧은 만료 시간을 가진다.
+- stream token은 일회성 사용을 권장한다.
+- 일반 access token을 SSE query string에 넣지 않는다.
+
+### GET `/api/briefings/{briefingId}/stream?streamToken=...`
+
+Event: `BRIEFING_PROGRESS`
+
+```json
+{
+  "briefingId": 100,
+  "step": "GITHUB_COLLECTED",
+  "source": "GITHUB",
+  "processed": 10,
+  "total": 10,
+  "message": "GitHub 릴리즈 수집 완료"
+}
+```
+
+Event: `BRIEFING_DONE`
+
+```json
+{
+  "briefingId": 100,
+  "status": "COMPLETED",
+  "message": "브리핑 생성이 완료되었습니다."
+}
+```
+
+Event: `BRIEFING_PARTIAL_DONE`
+
+```json
+{
+  "briefingId": 100,
+  "status": "PARTIAL",
+  "message": "일부 출처를 제외하고 브리핑을 생성했습니다.",
+  "failedSources": ["DEVTO"]
+}
+```
+
+Event: `BRIEFING_FAILED`
+
+```json
+{
+  "briefingId": 100,
+  "status": "FAILED",
+  "message": "브리핑 생성에 실패했습니다."
+}
+```
+
+SSE 규칙:
+
+- 이벤트 이름은 상수로 관리한다.
+- `BRIEFING_DONE`, `BRIEFING_PARTIAL_DONE`, `BRIEFING_FAILED` 수신 후 프론트는 연결을 닫는다.
+- SSE message에는 token, 내부 exception, stack trace를 포함하지 않는다.
+
+## 11. Saved Articles API
+
+### POST `/api/saved-articles/{itemId}`
+
+Request:
+
+```json
+{
+  "memo": "나중에 자세히 읽기"
+}
+```
+
+### GET `/api/saved-articles`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "savedId": 1,
+        "itemId": 1,
+        "title": "Spring Framework Release",
+        "url": "https://github.com/spring-projects/spring-framework",
+        "source": "GITHUB",
+        "memo": "나중에 자세히 읽기",
+        "savedAt": "2026-05-21T09:00:00+09:00"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+## 12. 프론트 타입 생성 기준
+
+프론트는 이 계약을 기준으로 타입을 만든다.
+
+권장 타입:
+
+```ts
+type ApiSuccess<T> = {
+  success: true;
+  data: T;
+  timestamp: string;
+};
+
+type ApiError = {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details: Array<{ field?: string; reason: string }>;
+    traceId: string;
+  };
+  timestamp: string;
+};
+
+type ApiResponse<T> = ApiSuccess<T> | ApiError;
+```
+
+규칙:
+
+- 프론트는 `success` 값으로 성공/실패를 좁힌다.
+- error code는 문자열 비교를 흩뿌리지 않고 상수로 관리한다.
+- 백엔드 DTO 변경 시 프론트 타입도 함께 수정한다.
+
+## 13. 변경 관리
+
+- 이 문서 변경은 API breaking change로 간주한다.
+- endpoint, field name, enum, error code 변경 시 백엔드/프론트 문서를 모두 수정한다.
+- 구현 중 임시 응답을 만들 경우 `TODO contract` 주석을 남기고 작업 완료 전에 제거한다.
+- 계약과 구현이 다르면 계약을 먼저 수정하고 구현을 맞춘다.
+
