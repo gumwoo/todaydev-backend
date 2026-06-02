@@ -112,7 +112,8 @@ class BriefingGenerationServiceTest {
             ));
             when(briefingRepository.saveApiCallLogs(any())).thenReturn(Mono.empty());
             when(briefingRepository.saveItems(eq(100L), any())).thenReturn(Flux.just(
-                    new BriefingItem(1L, 100L, Source.GITHUB, "1", "Spring", "https://example.com", "", BigDecimal.TEN)
+                    new BriefingItem(1L, 100L, Source.GITHUB, "1", "Spring", "https://example.com", "",
+                            BigDecimal.TEN, LocalDateTime.now(), Map.of("owner", "spring-projects"))
             ));
 
             service = new BriefingGenerationService(

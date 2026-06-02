@@ -8,9 +8,7 @@ import com.todaydev.common.exception.ErrorCode;
 import com.todaydev.common.exception.TodaydevException;
 import com.todaydev.common.response.ApiResponse;
 import jakarta.validation.Valid;
-import java.time.Duration;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -25,9 +23,11 @@ import reactor.core.publisher.Mono;
 public class AuthController {
 
     private final AuthService authService;
+    private final RefreshCookieFactory refreshCookieFactory;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, RefreshCookieFactory refreshCookieFactory) {
         this.authService = authService;
+        this.refreshCookieFactory = refreshCookieFactory;
     }
 
     @PostMapping("/signup")
@@ -57,34 +57,14 @@ public class AuthController {
         return currentUser()
                 .flatMap(user -> authService.logout(user.userId()))
                 .map(response -> ResponseEntity.ok()
-                        .header("Set-Cookie", expiredRefreshCookie().toString())
+                        .header("Set-Cookie", refreshCookieFactory.expire().toString())
                         .body(ApiResponse.success(response)));
     }
 
     private ResponseEntity<ApiResponse<LoginResponse>> loginResponse(AuthResult result) {
         return ResponseEntity.ok()
-                .header("Set-Cookie", refreshCookie(result).toString())
+                .header("Set-Cookie", refreshCookieFactory.create(result).toString())
                 .body(ApiResponse.success(result.response()));
-    }
-
-    private ResponseCookie refreshCookie(AuthResult result) {
-        return ResponseCookie.from(AuthCookies.REFRESH_TOKEN, result.refreshToken())
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path(AuthCookies.REFRESH_TOKEN_PATH)
-                .maxAge(Duration.ofSeconds(result.refreshTokenMaxAge()))
-                .build();
-    }
-
-    private ResponseCookie expiredRefreshCookie() {
-        return ResponseCookie.from(AuthCookies.REFRESH_TOKEN, "")
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Lax")
-                .path(AuthCookies.REFRESH_TOKEN_PATH)
-                .maxAge(Duration.ZERO)
-                .build();
     }
 
     private Mono<AuthenticatedUser> currentUser() {

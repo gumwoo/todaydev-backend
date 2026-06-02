@@ -21,5 +21,9 @@ public record CorsProperties(
         allowedMethods = List.copyOf(allowedMethods);
         allowedHeaders = List.copyOf(allowedHeaders);
         exposedHeaders = exposedHeaders == null ? List.of() : List.copyOf(exposedHeaders);
+
+        if (allowCredentials && allowedOrigins.contains("*")) {
+            throw new IllegalArgumentException("CORS credentials cannot be used with wildcard origin");
+        }
     }
 }

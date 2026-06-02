@@ -1,6 +1,7 @@
 package com.todaydev.briefing.domain;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,13 @@ public record BriefingCandidate(
                 title,
                 url,
                 summary,
-                score
+                score,
+                toLocalDateTime(publishedAt),
+                metadata
         );
+    }
+
+    private LocalDateTime toLocalDateTime(OffsetDateTime value) {
+        return value == null ? null : value.toLocalDateTime();
     }
 }

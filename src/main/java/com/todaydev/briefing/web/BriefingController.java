@@ -7,6 +7,7 @@ import com.todaydev.briefing.progress.BriefingProgressService;
 import com.todaydev.briefing.progress.StreamTokenResponse;
 import com.todaydev.briefing.progress.StreamTokenService;
 import com.todaydev.briefing.service.BriefingCreationService;
+import com.todaydev.briefing.service.BriefingQueryService;
 import com.todaydev.common.exception.ErrorCode;
 import com.todaydev.common.exception.TodaydevException;
 import com.todaydev.common.response.ApiResponse;
@@ -29,15 +30,18 @@ import reactor.core.publisher.Mono;
 public class BriefingController {
 
     private final BriefingCreationService briefingCreationService;
+    private final BriefingQueryService briefingQueryService;
     private final StreamTokenService streamTokenService;
     private final BriefingProgressService progressService;
 
     public BriefingController(
             BriefingCreationService briefingCreationService,
+            BriefingQueryService briefingQueryService,
             StreamTokenService streamTokenService,
             BriefingProgressService progressService
     ) {
         this.briefingCreationService = briefingCreationService;
+        this.briefingQueryService = briefingQueryService;
         this.streamTokenService = streamTokenService;
         this.progressService = progressService;
     }
@@ -49,6 +53,23 @@ public class BriefingController {
                 .map(briefing -> ResponseEntity
                         .status(HttpStatus.ACCEPTED)
                         .body(ApiResponse.success(toResponse(briefing))));
+    }
+
+    @GetMapping
+    public Mono<ApiResponse<BriefingsResponse>> findBriefings(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size
+    ) {
+        return currentUser()
+                .flatMap(user -> briefingQueryService.findMyBriefings(user.userId(), page, size))
+                .map(ApiResponse::success);
+    }
+
+    @GetMapping("/{briefingId}")
+    public Mono<ApiResponse<BriefingDetailResponse>> findBriefing(@PathVariable Long briefingId) {
+        return currentUser()
+                .flatMap(user -> briefingQueryService.findDetail(user.userId(), briefingId))
+                .map(ApiResponse::success);
     }
 
     @PostMapping("/{briefingId}/stream-token")

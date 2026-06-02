@@ -28,9 +28,11 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(
             ServerHttpSecurity http,
             JwtAuthenticationWebFilter jwtAuthenticationWebFilter,
-            SecurityExceptionHandlers exceptionHandlers
+            SecurityExceptionHandlers exceptionHandlers,
+            CorsConfigurationSource corsConfigurationSource
     ) {
         return http
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
                 .formLogin(ServerHttpSecurity.FormLoginSpec::disable)

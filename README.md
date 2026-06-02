@@ -167,3 +167,31 @@ Invoke-RestMethod -Method Get -Uri "http://localhost:8080/api/saved-articles?pag
 - DB/Redis 계정과 비밀번호 교체
 - DEBUG logging 제거 또는 축소
 - 성능 기준은 `PERFORMANCE_VALIDATION.md`에 따라 재측정
+
+---
+## 운영 인증/CORS 체크
+
+로컬 기본 설정은 개발 편의를 기준으로 둡니다. 운영 배포 전에는 아래 값을 반드시 운영 환경 설정이나 secret manager에서 덮어씁니다.
+
+```yaml
+app:
+  auth:
+    refresh-cookie:
+      secure: true
+      http-only: true
+      same-site: Lax
+      path: /api/auth
+  cors:
+    allowed-origins:
+      - https://your-frontend.example.com
+    allow-credentials: true
+```
+
+운영 기준:
+
+- `JWT_SECRET`은 기본값을 사용하지 않고 충분히 긴 운영 secret으로 교체합니다.
+- refresh cookie는 HTTPS 운영 환경에서 `secure=true`로 설정합니다.
+- `same-site=None`을 쓰는 경우 반드시 `secure=true`를 함께 사용합니다.
+- `allow-credentials=true`일 때 `allowed-origins=*`는 서버 기동 단계에서 차단됩니다.
+- CORS origin은 운영 프론트 URL만 허용합니다.
+- API key, token, Authorization header, refresh token은 URL/query/log/response DTO에 넣지 않습니다.

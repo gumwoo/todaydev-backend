@@ -13,6 +13,12 @@ public interface BriefingRepository {
 
     Mono<Briefing> findByIdAndUserId(Long briefingId, Long userId);
 
+    Flux<BriefingListItem> findByUserId(Long userId, int page, int size);
+
+    Mono<Long> countByUserId(Long userId);
+
+    Flux<BriefingItemDetail> findItemsByBriefingIdAndUserId(Long briefingId, Long userId);
+
     Mono<Briefing> updateStatus(Long briefingId, BriefingStatus status, String title, String summary);
 
     Flux<BriefingItem> saveItems(Long briefingId, Iterable<BriefingItem> items);

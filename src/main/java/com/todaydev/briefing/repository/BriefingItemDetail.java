@@ -1,12 +1,12 @@
-package com.todaydev.briefing.domain;
+package com.todaydev.briefing.repository;
 
+import com.todaydev.briefing.domain.Source;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-public record BriefingItem(
+public record BriefingItemDetail(
         Long itemId,
-        Long briefingId,
         Source source,
         String externalId,
         String title,
@@ -14,10 +14,11 @@ public record BriefingItem(
         String summary,
         BigDecimal score,
         LocalDateTime publishedAt,
-        Map<String, Object> metadata
+        Map<String, Object> metadata,
+        boolean saved
 ) {
 
-    public BriefingItem {
+    public BriefingItemDetail {
         metadata = metadata == null ? Map.of() : Map.copyOf(metadata);
     }
 }

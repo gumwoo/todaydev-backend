@@ -1,6 +1,7 @@
 package com.todaydev.common.config;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.todaydev.common.config.properties.CorsProperties;
 import com.todaydev.common.trace.TraceIds;
@@ -16,7 +17,7 @@ class SecurityConfigTest {
     @Test
     void corsConfiguration_usesConfiguredOriginsAndTraceHeader() {
         CorsProperties properties = new CorsProperties(
-                List.of("http://localhost:5173"),
+                List.of("http://localhost:5173", "http://127.0.0.1:5173"),
                 List.of("GET", "POST", "OPTIONS"),
                 List.of("Authorization", "Content-Type", TraceIds.TRACE_ID_HEADER),
                 List.of(TraceIds.TRACE_ID_HEADER),
@@ -34,11 +35,26 @@ class SecurityConfigTest {
         CorsConfiguration configuration = source.getCorsConfiguration(exchange);
 
         assertThat(configuration).isNotNull();
-        assertThat(configuration.getAllowedOrigins()).containsExactly("http://localhost:5173");
+        assertThat(configuration.getAllowedOrigins())
+                .containsExactly("http://localhost:5173", "http://127.0.0.1:5173");
         assertThat(configuration.getAllowedMethods()).contains("GET", "POST", "OPTIONS");
         assertThat(configuration.getAllowedHeaders()).contains("Authorization", "Content-Type", TraceIds.TRACE_ID_HEADER);
         assertThat(configuration.getExposedHeaders()).containsExactly(TraceIds.TRACE_ID_HEADER);
         assertThat(configuration.getAllowCredentials()).isTrue();
         assertThat(configuration.getMaxAge()).isEqualTo(3600);
+    }
+
+    @Test
+    void corsProperties_rejectsWildcardOriginWhenCredentialsAreAllowed() {
+        assertThatThrownBy(() -> new CorsProperties(
+                List.of("*"),
+                List.of("GET", "POST", "OPTIONS"),
+                List.of("Authorization", "Content-Type", TraceIds.TRACE_ID_HEADER),
+                List.of(TraceIds.TRACE_ID_HEADER),
+                true,
+                3600
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("wildcard origin");
     }
 }
