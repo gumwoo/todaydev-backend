@@ -1,11 +1,19 @@
 ﻿spring:
+  config:
+    import: optional:file:./application-local.yml
+
+  datasource:
+    url: jdbc:postgresql://localhost:15432/todaydev
+    username: todaydev
+    password: todaydev
+
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/todaydev
+    url: r2dbc:postgresql://localhost:15432/todaydev
     username: todaydev
     password: todaydev
 
   flyway:
-    url: jdbc:postgresql://localhost:5432/todaydev
+    url: jdbc:postgresql://localhost:15432/todaydev
     user: todaydev
     password: todaydev
     locations: classpath:db/migration
@@ -24,6 +32,10 @@ jwt:
   refresh-token-expiry: 1209600
 
 external:
+  client:
+    timeout-millis: 3000
+    retry-max-attempts: 2
+    retry-backoff-millis: 200
   github:
     token: ${GITHUB_PAT:}
     base-url: https://api.github.com
@@ -34,6 +46,23 @@ external:
   gemini:
     api-key: ${GEMINI_API_KEY:}
     base-url: https://generativelanguage.googleapis.com
+    model: gemini-2.5-flash-lite
+
+briefing:
+  scoring:
+    keyword-weight-multiplier: 10
+    watched-repository-bonus: 30
+    github-base-score: 20
+    hacker-news-base-score: 15
+    devto-base-score: 12
+    recency-half-life-hours: 48
+  collection:
+    github-release-limit-per-repository: 5
+    hacker-news-story-limit: 20
+    devto-article-limit-per-keyword: 5
+    candidate-concurrency: 8
+  ai:
+    summary-item-limit: 10
 
 app:
   cors:
@@ -80,3 +109,4 @@ logging:
   level:
     com.todaydev: DEBUG
     org.springframework.r2dbc: DEBUG
+

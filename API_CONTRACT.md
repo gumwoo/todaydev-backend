@@ -152,6 +152,11 @@ Validation 에러:
 - `BRIEFING_PARTIAL_CREATED`
 - `BRIEFING_SUMMARY_FAILED`
 
+저장한 글:
+
+- `SAVED_ARTICLE_DUPLICATED`
+- `SAVED_ARTICLE_NOT_FOUND`
+
 외부 API:
 
 - `EXTERNAL_GITHUB_FAILED`
@@ -397,6 +402,8 @@ Response `202`:
 
 - 브리핑 생성은 오래 걸릴 수 있으므로 요청 접수 후 `202 Accepted`를 우선 사용한다.
 - 이미 진행 중인 브리핑이 있으면 `409`와 `BRIEFING_ALREADY_IN_PROGRESS`를 반환한다.
+- 9단계부터 요청 접수 직후 `GENERATING` 상태와 `briefingId`를 반환하고, 실제 수집/요약/저장은 background worker가 수행한다.
+- 생성 진행률과 완료 상태는 아래 SSE API에서 조회한다.
 
 ### GET `/api/briefings`
 
@@ -500,7 +507,7 @@ Response:
 규칙:
 
 - stream token은 짧은 만료 시간을 가진다.
-- stream token은 일회성 사용을 권장한다.
+- stream token은 Redis 검증 시 즉시 소비되는 일회성 토큰이다.
 - 일반 access token을 SSE query string에 넣지 않는다.
 
 ### GET `/api/briefings/{briefingId}/stream?streamToken=...`
@@ -567,6 +574,24 @@ Request:
 }
 ```
 
+Response `201`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "savedId": 1,
+    "itemId": 1,
+    "title": "Spring Framework Release",
+    "url": "https://github.com/spring-projects/spring-framework",
+    "source": "GITHUB",
+    "memo": "나중에 자세히 읽기",
+    "savedAt": "2026-05-21T09:00:00+09:00"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
 ### GET `/api/saved-articles`
 
 Response:
@@ -595,6 +620,56 @@ Response:
   "timestamp": "2026-05-21T09:00:00+09:00"
 }
 ```
+
+### PATCH `/api/saved-articles/{savedId}`
+
+Request:
+
+```json
+{
+  "memo": "다시 읽고 팀에 공유하기"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "savedId": 1,
+    "itemId": 1,
+    "title": "Spring Framework Release",
+    "url": "https://github.com/spring-projects/spring-framework",
+    "source": "GITHUB",
+    "memo": "다시 읽고 팀에 공유하기",
+    "savedAt": "2026-05-21T09:00:00+09:00"
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+### DELETE `/api/saved-articles/{savedId}`
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true
+  },
+  "timestamp": "2026-05-21T09:00:00+09:00"
+}
+```
+
+규칙:
+
+- 본인의 브리핑 아이템만 저장할 수 있다.
+- 본인이 저장한 글만 조회, 수정, 삭제할 수 있다.
+- 같은 `itemId`를 중복 저장하면 `409`와 `SAVED_ARTICLE_DUPLICATED`를 반환한다.
+- 존재하지 않거나 권한이 없는 저장 글은 `SAVED_ARTICLE_NOT_FOUND`로 처리한다.
+- `memo`는 최대 1000자이며, 비어 있으면 빈 문자열로 저장할 수 있다.
 
 ## 12. 프론트 타입 생성 기준
 
@@ -635,4 +710,3 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - endpoint, field name, enum, error code 변경 시 백엔드/프론트 문서를 모두 수정한다.
 - 구현 중 임시 응답을 만들 경우 `TODO contract` 주석을 남기고 작업 완료 전에 제거한다.
 - 계약과 구현이 다르면 계약을 먼저 수정하고 구현을 맞춘다.
-

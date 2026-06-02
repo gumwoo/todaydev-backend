@@ -34,6 +34,7 @@
 
 - 비즈니스 코드에 `.block()`이 없다.
 - 비즈니스 코드에 직접 `.subscribe()`가 없다.
+- 비동기 작업을 소비하는 subscription boundary가 필요하면 `infrastructure` 단일 위치에 격리되고 오류/종료 처리가 있다.
 - blocking 작업은 boundedElastic로 격리된다.
 - 외부 API 호출에는 timeout/fallback이 있다.
 - 다량 호출에는 concurrency 제한이 있다.
@@ -54,6 +55,7 @@
 - 설정값 추가가 있으면 환경 변수 문서 또는 README 갱신 대상인지 확인했다.
 - 새 ErrorCode, enum, SSE event가 있으면 문서에 반영했다.
 - 프론트와 맞닿는 변경은 프론트 계약 문서도 함께 갱신했다.
+- 실행 방법과 성능/검증 기준이 바뀌면 `README.md` 또는 `PERFORMANCE_VALIDATION.md`를 갱신했다.
 
 ## 7. AI 작업 완료 체크리스트
 
@@ -67,4 +69,3 @@ AI가 백엔드 작업 후 반드시 확인한다.
 - 설정값이 중앙 관리되는가?
 - 실패 시나리오가 고려되었는가?
 - 프론트가 응답을 예측 가능하게 받을 수 있는가?
-

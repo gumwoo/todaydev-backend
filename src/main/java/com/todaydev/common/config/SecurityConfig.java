@@ -43,6 +43,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/api/auth/signup", "/api/auth/login", "/api/auth/refresh").permitAll()
+                        .pathMatchers(HttpMethod.GET, "/api/briefings/*/stream").permitAll()
                         .anyExchange().authenticated()
                 )
                 .build();

@@ -29,6 +29,9 @@ public enum ErrorCode {
     BRIEFING_PARTIAL_CREATED(HttpStatus.OK, "일부 출처를 제외하고 브리핑을 생성했습니다."),
     BRIEFING_SUMMARY_FAILED(HttpStatus.OK, "AI 요약에 실패했습니다."),
 
+    SAVED_ARTICLE_DUPLICATED(HttpStatus.CONFLICT, "이미 저장한 글입니다."),
+    SAVED_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND, "저장한 글을 찾을 수 없습니다."),
+
     EXTERNAL_GITHUB_FAILED(HttpStatus.BAD_GATEWAY, "GitHub API 호출에 실패했습니다."),
     EXTERNAL_HACKER_NEWS_FAILED(HttpStatus.BAD_GATEWAY, "Hacker News API 호출에 실패했습니다."),
     EXTERNAL_DEVTO_FAILED(HttpStatus.BAD_GATEWAY, "DEV.to API 호출에 실패했습니다."),

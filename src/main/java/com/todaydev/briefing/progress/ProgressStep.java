@@ -1,0 +1,18 @@
+package com.todaydev.briefing.progress;
+
+public enum ProgressStep {
+    BRIEFING_REQUESTED,
+    GITHUB_COLLECTING,
+    GITHUB_COLLECTED,
+    HACKER_NEWS_COLLECTING,
+    HACKER_NEWS_COLLECTED,
+    DEVTO_COLLECTING,
+    DEVTO_COLLECTED,
+    FILTERING,
+    SCORING,
+    AI_SUMMARIZING,
+    SAVING,
+    DONE,
+    PARTIAL_DONE,
+    FAILED
+}

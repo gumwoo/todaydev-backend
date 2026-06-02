@@ -106,6 +106,8 @@ Client/Adapter:
 
 - Controller와 Service는 기본적으로 `Mono<T>` 또는 `Flux<T>`를 반환한다.
 - `.block()`, `.subscribe()`를 비즈니스 코드에서 직접 호출하지 않는다.
+- 백그라운드 reactive job을 시작하기 위한 subscription boundary는 `infrastructure` 컴포넌트 한 곳에만 허용하며, 종료 처리와 오류 로깅을 반드시 둔다.
+- Controller, 도메인 Service, Repository, 외부 API Client에는 subscription boundary를 추가하지 않는다.
 - CPU 비용이 큰 작업은 event-loop에서 실행하지 않는다.
 - BCrypt, 파일 처리, blocking SDK 호출이 필요하면 `Schedulers.boundedElastic()`로 격리한다.
 - 외부 API 호출은 timeout과 fallback 전략을 함께 둔다.

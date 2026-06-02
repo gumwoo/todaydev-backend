@@ -58,6 +58,16 @@
 - in-progress lock
 - briefing 저장/조회
 
+저장한 글:
+
+- 저장 성공
+- 중복 저장 실패
+- 본인 브리핑 아이템만 저장 가능
+- 저장 목록 paging
+- 메모 수정
+- 삭제
+- 다른 사용자 저장 글 접근 차단
+
 AI:
 
 - AI 요약 성공
@@ -162,4 +172,3 @@ githubClient_returnsFallback_whenGithubTimesOut
 - 테스트 순서에 의존하는 것 금지
 - 과도한 sleep으로 비동기 테스트를 처리하는 것 금지
 - 보안 설정을 꺼놓고 통과시키는 것 금지
-
