@@ -310,6 +310,16 @@ Response `200`:
 
 ## 8. Preferences API
 
+### 수집 정책
+
+- 관심 키워드는 대소문자를 구분하지 않는다.
+- 서버는 키워드를 내부적으로 lowercase로 정규화해 저장하고 중복을 판정한다.
+- `Spring`, `spring`, `SPRING`은 같은 관심사로 본다.
+- 브리핑 생성 시 DEV.to는 관심 키워드 tag를 기준으로 수집한다.
+- 브리핑 생성 시 GitHub는 사용자가 등록한 repository가 없어도 관심 키워드로 repository를 자동 검색한 뒤 release를 수집한다.
+- GitHub repository 직접 등록은 필수가 아니라 특정 저장소를 우선 보고 싶을 때 쓰는 선택 설정이다.
+- Hacker News는 top stories를 수집한 뒤 관심 키워드 매칭과 점수화로 우선순위를 조정한다.
+
 ### GET `/api/preferences/me`
 
 Response:

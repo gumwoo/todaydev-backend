@@ -58,6 +58,7 @@ briefing:
     recency-half-life-hours: 48
   collection:
     github-release-limit-per-repository: 5
+    github-search-repository-limit-per-keyword: 3
     hacker-news-story-limit: 20
     devto-article-limit-per-keyword: 5
     candidate-concurrency: 8

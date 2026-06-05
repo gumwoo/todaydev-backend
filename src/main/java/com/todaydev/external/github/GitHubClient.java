@@ -5,6 +5,8 @@ import com.todaydev.common.exception.ErrorCode;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.ExternalClientSupport;
 import com.todaydev.external.ExternalSource;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -43,6 +45,35 @@ public class GitHubClient {
                 .onErrorMap(throwable -> support.mapUnexpected(throwable, ErrorCode.EXTERNAL_GITHUB_FAILED));
     }
 
+    public Flux<GitHubRepositoryReference> searchRepositoriesByKeyword(String keyword, int limit) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+
+        if (normalizedKeyword.isBlank()) {
+            return Flux.empty();
+        }
+
+        int normalizedLimit = support.normalizedLimit(limit);
+
+        return webClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/search/repositories")
+                        .queryParam("q", normalizedKeyword)
+                        .queryParam("sort", "stars")
+                        .queryParam("order", "desc")
+                        .queryParam("per_page", normalizedLimit)
+                        .build())
+                .retrieve()
+                .onStatus(status -> status.isError(),
+                        response -> support.mapStatus(response, ErrorCode.EXTERNAL_GITHUB_FAILED))
+                .bodyToMono(GitHubRepositorySearchResponse.class)
+                .flatMapMany(response -> Flux.fromIterable(response.items() == null ? List.of() : response.items()))
+                .map(GitHubRepositorySearchResponse.Item::toReference)
+                .filter(GitHubRepositoryReference::valid)
+                .timeout(support.timeout())
+                .retryWhen(support.retrySpec())
+                .onErrorMap(throwable -> support.mapUnexpected(throwable, ErrorCode.EXTERNAL_GITHUB_FAILED));
+    }
+
     private ExternalArticle toArticle(String owner, String repoName, GitHubReleaseResponse response) {
         return new ExternalArticle(
                 ExternalSource.GITHUB,
@@ -57,5 +88,9 @@ public class GitHubClient {
                         "tagName", response.tagName() == null ? "" : response.tagName()
                 )
         );
+    }
+
+    private String normalizeKeyword(String keyword) {
+        return keyword == null ? "" : keyword.trim().toLowerCase(Locale.ROOT);
     }
 }

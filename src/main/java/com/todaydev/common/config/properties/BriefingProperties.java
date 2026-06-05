@@ -25,6 +25,7 @@ public record BriefingProperties(
 
     public record Collection(
             @Min(1) int githubReleaseLimitPerRepository,
+            @Min(1) int githubSearchRepositoryLimitPerKeyword,
             @Min(1) int hackerNewsStoryLimit,
             @Min(1) int devtoArticleLimitPerKeyword,
             @Min(1) int candidateConcurrency

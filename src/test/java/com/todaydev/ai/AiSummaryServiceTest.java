@@ -52,7 +52,7 @@ class AiSummaryServiceTest {
     private BriefingProperties properties() {
         return new BriefingProperties(
                 new BriefingProperties.Scoring(10, 30, 20, 15, 12, 48),
-                new BriefingProperties.Collection(5, 20, 5, 8),
+                new BriefingProperties.Collection(5, 3, 20, 5, 8),
                 new BriefingProperties.Ai(10)
         );
     }

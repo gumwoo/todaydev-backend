@@ -6,12 +6,16 @@ import com.todaydev.common.config.properties.BriefingProperties;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.devto.DevToClient;
 import com.todaydev.external.github.GitHubClient;
+import com.todaydev.external.github.GitHubRepositoryReference;
 import com.todaydev.external.hackernews.HackerNewsClient;
 import com.todaydev.preference.domain.InterestKeyword;
 import com.todaydev.preference.domain.WatchedRepository;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -42,22 +46,27 @@ public class ExternalArticleCollector {
             List<WatchedRepository> repositories
     ) {
         return Flux.merge(
-                        collectGitHub(briefingId, repositories),
+                        collectGitHub(briefingId, keywords, repositories),
                         collectHackerNews(briefingId),
                         collectDevTo(briefingId, keywords)
                 )
                 .collectList();
     }
 
-    private Mono<SourceCollectionResult> collectGitHub(Long briefingId, List<WatchedRepository> repositories) {
+    private Mono<SourceCollectionResult> collectGitHub(
+            Long briefingId,
+            List<InterestKeyword> keywords,
+            List<WatchedRepository> repositories
+    ) {
         Instant startedAt = Instant.now();
 
-        return Flux.fromIterable(repositories)
+        return gitHubRepositories(keywords, repositories)
                 .flatMap(repository -> gitHubClient.fetchRepositoryReleases(
-                        repository.owner(),
-                        repository.repoName(),
-                        collection.githubReleaseLimitPerRepository()
-                ))
+                                repository.owner(),
+                                repository.repoName(),
+                                collection.githubReleaseLimitPerRepository()
+                        ),
+                        collection.candidateConcurrency())
                 .collectList()
                 .map(articles -> success(briefingId, Source.GITHUB, startedAt, articles))
                 .onErrorResume(throwable -> Mono.just(failed(briefingId, Source.GITHUB, startedAt)));
@@ -83,6 +92,40 @@ public class ExternalArticleCollector {
                 .collectList()
                 .map(articles -> success(briefingId, Source.DEVTO, startedAt, articles))
                 .onErrorResume(throwable -> Mono.just(failed(briefingId, Source.DEVTO, startedAt)));
+    }
+
+    private Flux<GitHubRepositoryReference> gitHubRepositories(
+            List<InterestKeyword> keywords,
+            List<WatchedRepository> repositories
+    ) {
+        Flux<GitHubRepositoryReference> watched = Flux.fromIterable(repositories == null ? List.of() : repositories)
+                .map(repository -> new GitHubRepositoryReference(repository.owner(), repository.repoName()));
+
+        Flux<GitHubRepositoryReference> searched = Flux.fromIterable(keywords == null ? List.of() : keywords)
+                .flatMap(keyword -> gitHubClient.searchRepositoriesByKeyword(
+                                keyword.keyword(),
+                                collection.githubSearchRepositoryLimitPerKeyword()
+                        ),
+                        collection.candidateConcurrency());
+
+        return Flux.concat(watched, searched)
+                .collectList()
+                .flatMapMany(repositoriesToDeduplicatedFlux -> Flux.fromIterable(
+                        deduplicateRepositories(repositoriesToDeduplicatedFlux)));
+    }
+
+    private List<GitHubRepositoryReference> deduplicateRepositories(List<GitHubRepositoryReference> repositories) {
+        Map<String, GitHubRepositoryReference> deduplicated = new LinkedHashMap<>();
+
+        repositories.stream()
+                .filter(GitHubRepositoryReference::valid)
+                .forEach(repository -> deduplicated.putIfAbsent(repositoryKey(repository), repository));
+
+        return List.copyOf(deduplicated.values());
+    }
+
+    private String repositoryKey(GitHubRepositoryReference repository) {
+        return (repository.owner() + "/" + repository.repoName()).toLowerCase(Locale.ROOT);
     }
 
     private SourceCollectionResult success(

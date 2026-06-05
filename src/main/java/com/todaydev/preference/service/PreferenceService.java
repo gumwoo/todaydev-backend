@@ -11,6 +11,7 @@ import com.todaydev.preference.web.DeleteResponse;
 import com.todaydev.preference.web.KeywordResponse;
 import com.todaydev.preference.web.PreferenceResponse;
 import com.todaydev.preference.web.RepositoryResponse;
+import java.util.Locale;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -40,7 +41,11 @@ public class PreferenceService {
         String keyword = normalizeKeyword(request.keyword());
         int weight = request.weight() == null ? 1 : request.weight();
 
-        return preferenceRepository.saveKeyword(userId, keyword, weight)
+        return preferenceRepository.findKeywordsByUserId(userId)
+                .any(savedKeyword -> sameKeyword(savedKeyword.keyword(), keyword))
+                .flatMap(duplicated -> duplicated
+                        ? Mono.error(new TodaydevException(ErrorCode.PREFERENCE_KEYWORD_DUPLICATED))
+                        : preferenceRepository.saveKeyword(userId, keyword, weight))
                 .map(this::toKeywordResponse)
                 .onErrorMap(DuplicateKeyException.class,
                         exception -> new TodaydevException(ErrorCode.PREFERENCE_KEYWORD_DUPLICATED));
@@ -89,6 +94,10 @@ public class PreferenceService {
     }
 
     private String normalizeKeyword(String keyword) {
-        return keyword.trim();
+        return keyword.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private boolean sameKeyword(String left, String right) {
+        return normalizeKeyword(left).equals(normalizeKeyword(right));
     }
 }
