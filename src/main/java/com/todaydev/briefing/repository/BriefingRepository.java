@@ -17,6 +17,8 @@ public interface BriefingRepository {
 
     Mono<Long> countByUserId(Long userId);
 
+    Mono<Boolean> existsByUserIdAndGeneratedAtBetween(Long userId, java.time.LocalDateTime start, java.time.LocalDateTime end);
+
     Flux<BriefingItemDetail> findItemsByBriefingIdAndUserId(Long briefingId, Long userId);
 
     Mono<Briefing> updateStatus(Long briefingId, BriefingStatus status, String title, String summary);

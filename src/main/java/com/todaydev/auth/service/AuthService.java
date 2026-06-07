@@ -13,6 +13,7 @@ import com.todaydev.auth.web.SignupResponse;
 import com.todaydev.auth.web.UserResponse;
 import com.todaydev.common.exception.ErrorCode;
 import com.todaydev.common.exception.TodaydevException;
+import com.todaydev.schedule.repository.BriefingScheduleRepository;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -26,17 +27,20 @@ public class AuthService {
     private final PasswordService passwordService;
     private final JwtProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
+    private final BriefingScheduleRepository scheduleRepository;
 
     public AuthService(
             UserRepository userRepository,
             PasswordService passwordService,
             JwtProvider jwtProvider,
-            RefreshTokenService refreshTokenService
+            RefreshTokenService refreshTokenService,
+            BriefingScheduleRepository scheduleRepository
     ) {
         this.userRepository = userRepository;
         this.passwordService = passwordService;
         this.jwtProvider = jwtProvider;
         this.refreshTokenService = refreshTokenService;
+        this.scheduleRepository = scheduleRepository;
     }
 
     public Mono<SignupResponse> signup(SignupRequest request) {
@@ -49,6 +53,7 @@ public class AuthService {
                     return passwordService.encode(request.password())
                             .flatMap(passwordHash -> userRepository.save(normalizedEmail, passwordHash));
                 })
+                .flatMap(user -> scheduleRepository.createDefault(user.userId()).thenReturn(user))
                 .map(user -> new SignupResponse(user.userId(), user.email()))
                 .onErrorMap(DuplicateKeyException.class, exception -> new TodaydevException(ErrorCode.CONFLICT));
     }

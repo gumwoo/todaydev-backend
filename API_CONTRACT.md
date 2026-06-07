@@ -1,4 +1,4 @@
-# API Contract
+﻿# API Contract
 
 이 문서는 `오늘의 개발` 백엔드와 프론트엔드가 반드시 공유해야 하는 API 계약입니다. 구현 중 백엔드 응답 구조, 에러 포맷, 상태값, SSE 이벤트 이름을 임의로 바꾸지 않습니다.
 
@@ -576,7 +576,72 @@ SSE 규칙:
 - `BRIEFING_DONE`, `BRIEFING_PARTIAL_DONE`, `BRIEFING_FAILED` 수신 후 프론트는 연결을 닫는다.
 - SSE message에는 token, 내부 exception, stack trace를 포함하지 않는다.
 
-## 11. Saved Articles API
+## 11. Schedule API
+
+### GET `/api/schedule/me/briefing`
+
+인증된 사용자의 자동 브리핑 수신 설정을 조회한다.
+
+Response `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "briefingTime": "08:00",
+    "timezone": "Asia/Seoul",
+    "enabled": true,
+    "updatedAt": "2026-06-07T13:20:00"
+  },
+  "timestamp": "2026-06-07T13:20:00+09:00"
+}
+```
+
+정책:
+- 설정이 없는 사용자는 기본값 `08:00`, `Asia/Seoul`, `enabled=true`를 생성해 반환한다.
+- 프론트는 `briefingTime`을 사이드바의 "매일 받을 시간"에 표시한다.
+- 타임존은 IANA timezone ID를 사용한다. 예: `Asia/Seoul`, `America/New_York`.
+
+### PUT `/api/schedule/me/briefing`
+
+사용자의 자동 브리핑 수신 설정을 수정한다.
+
+Request:
+
+```json
+{
+  "briefingTime": "08:30",
+  "timezone": "Asia/Seoul",
+  "enabled": true
+}
+```
+
+Response `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "briefingTime": "08:30",
+    "timezone": "Asia/Seoul",
+    "enabled": true,
+    "updatedAt": "2026-06-07T13:25:00"
+  },
+  "timestamp": "2026-06-07T13:25:00+09:00"
+}
+```
+
+Validation:
+- `briefingTime`: `HH:mm` 형식의 시간이다.
+- `timezone`: 유효한 IANA timezone ID여야 한다.
+- `enabled`: 자동 브리핑 활성 여부다.
+
+자동 생성 정책:
+- 백엔드 Scheduler는 주기적으로 실행 대상 사용자를 확인한다.
+- 사용자의 로컬 시간이 `briefingTime`과 같은 분이면 브리핑 생성 job을 enqueue한다.
+- 같은 사용자에게 같은 로컬 날짜의 브리핑이 이미 있으면 중복 생성하지 않는다.
+- 실제 수집과 AI 요약은 기존 브리핑 생성 job worker가 처리한다.
+## 12. Saved Articles API
 
 ### POST `/api/saved-articles/{itemId}`
 
@@ -741,3 +806,4 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - `allow-credentials=true`를 사용하는 경우 `allowed-origins=*`는 허용하지 않는다.
 - 운영에서는 실제 프론트 URL만 origin으로 등록한다.
 - Authorization header, refresh token, stream token, API key는 URL/query/log/response DTO에 넣지 않는다.
+

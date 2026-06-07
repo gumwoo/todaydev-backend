@@ -64,6 +64,9 @@ briefing:
     candidate-concurrency: 8
   ai:
     summary-item-limit: 10
+  schedule:
+    poll-interval-ms: 60000
+    initial-delay-ms: 15000
 
 app:
   auth:

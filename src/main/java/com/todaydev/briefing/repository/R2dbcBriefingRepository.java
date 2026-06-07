@@ -93,6 +93,24 @@ public class R2dbcBriefingRepository implements BriefingRepository {
     }
 
     @Override
+    public Mono<Boolean> existsByUserIdAndGeneratedAtBetween(Long userId, LocalDateTime start, LocalDateTime end) {
+        return databaseClient.sql("""
+                        SELECT EXISTS (
+                            SELECT 1
+                            FROM briefing
+                            WHERE user_id = :userId
+                              AND generated_at >= :start
+                              AND generated_at < :end
+                        ) AS exists
+                        """)
+                .bind("userId", userId)
+                .bind("start", start)
+                .bind("end", end)
+                .map(row -> Boolean.TRUE.equals(row.get("exists", Boolean.class)))
+                .one();
+    }
+
+    @Override
     public Flux<BriefingItemDetail> findItemsByBriefingIdAndUserId(Long briefingId, Long userId) {
         return databaseClient.sql("""
                         SELECT bi.item_id, bi.source, bi.external_id, bi.title, bi.url,
