@@ -2,6 +2,7 @@ package com.todaydev.external.devto;
 
 import com.todaydev.common.config.properties.ExternalApiProperties;
 import com.todaydev.common.exception.ErrorCode;
+import com.todaydev.external.ExternalApiCache;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.ExternalClientSupport;
 import com.todaydev.external.ExternalSource;
@@ -17,22 +18,35 @@ public class DevToClient {
 
     private final WebClient webClient;
     private final ExternalClientSupport support;
+    private final ExternalApiCache cache;
 
     public DevToClient(
             @Qualifier("devToWebClient") WebClient webClient,
-            ExternalApiProperties properties
+            ExternalApiProperties properties,
+            ExternalApiCache cache
     ) {
         this.webClient = webClient;
         this.support = new ExternalClientSupport(properties.client());
+        this.cache = cache;
     }
 
     public Flux<ExternalArticle> fetchArticlesByTag(String tag, int limit) {
         int normalizedLimit = support.normalizedLimit(limit);
+        String normalizedTag = normalizeTag(tag);
 
+        return cache.cachedFlux(
+                ExternalSource.DEVTO.name(),
+                "articles:tag:%s:%d".formatted(normalizedTag, normalizedLimit),
+                ExternalArticle.class,
+                () -> fetchArticlesByTagFromApi(normalizedTag, normalizedLimit)
+        );
+    }
+
+    private Flux<ExternalArticle> fetchArticlesByTagFromApi(String normalizedTag, int normalizedLimit) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/articles")
-                        .queryParam("tag", normalizeTag(tag))
+                        .queryParam("tag", normalizedTag)
                         .queryParam("per_page", normalizedLimit)
                         .build())
                 .retrieve()

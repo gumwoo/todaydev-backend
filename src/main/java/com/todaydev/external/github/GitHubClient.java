@@ -2,6 +2,7 @@ package com.todaydev.external.github;
 
 import com.todaydev.common.config.properties.ExternalApiProperties;
 import com.todaydev.common.exception.ErrorCode;
+import com.todaydev.external.ExternalApiCache;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.ExternalClientSupport;
 import com.todaydev.external.ExternalSource;
@@ -18,18 +19,30 @@ public class GitHubClient {
 
     private final WebClient webClient;
     private final ExternalClientSupport support;
+    private final ExternalApiCache cache;
 
     public GitHubClient(
             @Qualifier("githubWebClient") WebClient webClient,
-            ExternalApiProperties properties
+            ExternalApiProperties properties,
+            ExternalApiCache cache
     ) {
         this.webClient = webClient;
         this.support = new ExternalClientSupport(properties.client());
+        this.cache = cache;
     }
 
     public Flux<ExternalArticle> fetchRepositoryReleases(String owner, String repoName, int limit) {
         int normalizedLimit = support.normalizedLimit(limit);
 
+        return cache.cachedFlux(
+                ExternalSource.GITHUB.name(),
+                "releases:%s/%s:%d".formatted(normalizeKeyword(owner), normalizeKeyword(repoName), normalizedLimit),
+                ExternalArticle.class,
+                () -> fetchRepositoryReleasesFromApi(owner, repoName, normalizedLimit)
+        );
+    }
+
+    private Flux<ExternalArticle> fetchRepositoryReleasesFromApi(String owner, String repoName, int normalizedLimit) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/repos/{owner}/{repo}/releases")
@@ -54,6 +67,15 @@ public class GitHubClient {
 
         int normalizedLimit = support.normalizedLimit(limit);
 
+        return cache.cachedFlux(
+                ExternalSource.GITHUB.name(),
+                "search:repositories:%s:%d".formatted(normalizedKeyword, normalizedLimit),
+                GitHubRepositoryReference.class,
+                () -> searchRepositoriesByKeywordFromApi(normalizedKeyword, normalizedLimit)
+        );
+    }
+
+    private Flux<GitHubRepositoryReference> searchRepositoriesByKeywordFromApi(String normalizedKeyword, int normalizedLimit) {
         return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/search/repositories")

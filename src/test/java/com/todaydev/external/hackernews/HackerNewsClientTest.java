@@ -2,6 +2,7 @@ package com.todaydev.external.hackernews;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.todaydev.external.ExternalApiCacheTestSupport;
 import com.todaydev.external.ExternalApiPropertiesFactory;
 import com.todaydev.external.ExternalSource;
 import okhttp3.mockwebserver.MockResponse;
@@ -48,7 +49,8 @@ class HackerNewsClientTest {
 
         HackerNewsClient client = new HackerNewsClient(
                 WebClient.builder().baseUrl(server.url("/").toString()).build(),
-                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000)
+                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000),
+                ExternalApiCacheTestSupport.passthroughCache()
         );
 
         StepVerifier.create(client.fetchTopStories(1))

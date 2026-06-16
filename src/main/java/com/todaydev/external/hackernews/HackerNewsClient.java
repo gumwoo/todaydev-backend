@@ -2,6 +2,7 @@ package com.todaydev.external.hackernews;
 
 import com.todaydev.common.config.properties.ExternalApiProperties;
 import com.todaydev.common.exception.ErrorCode;
+import com.todaydev.external.ExternalApiCache;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.ExternalClientSupport;
 import com.todaydev.external.ExternalSource;
@@ -21,18 +22,30 @@ public class HackerNewsClient {
 
     private final WebClient webClient;
     private final ExternalClientSupport support;
+    private final ExternalApiCache cache;
 
     public HackerNewsClient(
             @Qualifier("hackerNewsWebClient") WebClient webClient,
-            ExternalApiProperties properties
+            ExternalApiProperties properties,
+            ExternalApiCache cache
     ) {
         this.webClient = webClient;
         this.support = new ExternalClientSupport(properties.client());
+        this.cache = cache;
     }
 
     public Flux<ExternalArticle> fetchTopStories(int limit) {
         int normalizedLimit = support.normalizedLimit(limit);
 
+        return cache.cachedFlux(
+                ExternalSource.HACKER_NEWS.name(),
+                "topstories:%d".formatted(normalizedLimit),
+                ExternalArticle.class,
+                () -> fetchTopStoriesFromApi(normalizedLimit)
+        );
+    }
+
+    private Flux<ExternalArticle> fetchTopStoriesFromApi(int normalizedLimit) {
         return webClient.get()
                 .uri("/topstories.json")
                 .retrieve()

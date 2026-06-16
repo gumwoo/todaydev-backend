@@ -6,6 +6,7 @@ import com.todaydev.common.exception.ErrorCode;
 import com.todaydev.common.exception.TodaydevException;
 import com.todaydev.external.ExternalApiPropertiesFactory;
 import com.todaydev.external.ExternalArticle;
+import com.todaydev.external.ExternalApiCacheTestSupport;
 import com.todaydev.external.ExternalSource;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.mockwebserver.MockResponse;
@@ -50,7 +51,8 @@ class GitHubClientTest {
 
         GitHubClient client = new GitHubClient(
                 WebClient.builder().baseUrl(server.url("/").toString()).build(),
-                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000)
+                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000),
+                ExternalApiCacheTestSupport.passthroughCache()
         );
 
         StepVerifier.create(client.fetchRepositoryReleases("spring-projects", "spring-framework", 5))
@@ -69,7 +71,8 @@ class GitHubClientTest {
 
         GitHubClient client = new GitHubClient(
                 WebClient.builder().baseUrl(server.url("/").toString()).build(),
-                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000)
+                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000),
+                ExternalApiCacheTestSupport.passthroughCache()
         );
 
         StepVerifier.create(client.fetchRepositoryReleases("owner", "repo", 5))
@@ -98,7 +101,8 @@ class GitHubClientTest {
 
         GitHubClient client = new GitHubClient(
                 WebClient.builder().baseUrl(server.url("/").toString()).build(),
-                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000)
+                ExternalApiPropertiesFactory.properties(server.url("/").toString(), 1000),
+                ExternalApiCacheTestSupport.passthroughCache()
         );
 
         StepVerifier.create(client.searchRepositoriesByKeyword(" Spring ", 3))
