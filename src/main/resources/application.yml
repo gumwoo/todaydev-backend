@@ -23,6 +23,18 @@
       host: localhost
       port: 6379
 
+  mail:
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${SMTP_AUTH:false}
+          starttls:
+            enable: ${SMTP_STARTTLS_ENABLE:false}
+
 server:
   port: 8080
 
@@ -67,6 +79,45 @@ briefing:
   schedule:
     poll-interval-ms: 60000
     initial-delay-ms: 15000
+
+notification:
+  enabled: true
+  max-items-per-message: 5
+  queue:
+    provider: rabbitmq
+    publish-timeout-millis: 3000
+    consumer-concurrency: 4
+    retry-max-attempts: 3
+    retry-backoff-millis: 5000
+    dlq-enabled: true
+    kafka:
+      bootstrap-servers: localhost:9092
+      request-topic: todaydev.notification.requested
+      retry-topic: todaydev.notification.retry
+      dlq-topic: todaydev.notification.dlq
+      consumer-group-id: todaydev-notification
+    rabbitmq:
+      host: localhost
+      port: 5672
+      username: guest
+      password: guest
+      exchange: notification.exchange
+      request-queue: notification.requested.queue
+      retry-queue: notification.retry.queue
+      dlq: notification.dlq
+  email:
+    enabled: ${EMAIL_NOTIFICATION_ENABLED:true}
+    from: no-reply@todaydev.local
+    subject-prefix: "[Todaydev]"
+    timeout-millis: 3000
+  slack:
+    enabled: true
+    base-url: https://hooks.slack.com
+    timeout-millis: 3000
+  discord:
+    enabled: true
+    base-url: https://discord.com/api
+    timeout-millis: 3000
 
 app:
   auth:
@@ -121,4 +172,3 @@ logging:
   level:
     com.todaydev: DEBUG
     org.springframework.r2dbc: DEBUG
-
