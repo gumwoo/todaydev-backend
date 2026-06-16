@@ -38,3 +38,20 @@ out/
 
 ### Local secrets ###
 application-local.yml
+
+### macOS (Macbook) Specific ###
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon 파일 및 썸네일 데이터
+Icon?
+._*
+
+# 파일 시스템 메타데이터 및 전역 폴더 관련
+.Spotlight-V100
+.Trashes
+
+# 외부 저장소(외장하드/USB) 연결 시 생성 파일
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
