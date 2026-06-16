@@ -47,9 +47,12 @@ public class ExternalApiCache {
 
         return redisTemplate.opsForValue()
                 .get(redisKey)
-                .flatMapMany(cached -> decode(cached, elementType)
-                        .doOnComplete(() -> log.debug("외부 API 캐시 적중: source={}, key={}", source, redisKey)))
-                .switchIfEmpty(Flux.defer(() -> loadAndCache(source, redisKey, elementType, loader)))
+                .flatMap(cached -> decode(cached, elementType))
+                .map(CacheLookup::hit)
+                .defaultIfEmpty(CacheLookup.miss())
+                .flatMapMany(lookup -> lookup.hit()
+                        ? cachedItems(source, redisKey, lookup.items())
+                        : loadAndCache(source, redisKey, elementType, loader))
                 .onErrorResume(throwable -> {
                     log.warn("외부 API 캐시 처리 실패, 원본 API 호출로 대체: source={}, key={}", source, redisKey, throwable);
                     return Flux.defer(loader);
@@ -71,6 +74,11 @@ public class ExternalApiCache {
                         .thenMany(Flux.fromIterable(items)));
     }
 
+    private <T> Flux<T> cachedItems(String source, String redisKey, List<T> items) {
+        log.debug("외부 API 캐시 적중: source={}, key={}, size={}", source, redisKey, items.size());
+        return Flux.fromIterable(items);
+    }
+
     private <T> Mono<CacheWriteResult> write(String redisKey, List<T> items) {
         try {
             return redisTemplate.opsForValue()
@@ -86,13 +94,24 @@ public class ExternalApiCache {
     private record CacheWriteResult(boolean written, boolean expired) {
     }
 
-    private <T> Flux<T> decode(String cached, Class<T> elementType) {
+    private record CacheLookup<T>(boolean hit, List<T> items) {
+
+        private static <T> CacheLookup<T> hit(List<T> items) {
+            return new CacheLookup<>(true, items);
+        }
+
+        private static <T> CacheLookup<T> miss() {
+            return new CacheLookup<>(false, List.of());
+        }
+    }
+
+    private <T> Mono<List<T>> decode(String cached, Class<T> elementType) {
         try {
             JavaType type = objectMapper.getTypeFactory().constructCollectionType(List.class, elementType);
             List<T> items = objectMapper.readValue(cached, type);
-            return Flux.fromIterable(items);
+            return Mono.just(items);
         } catch (JsonProcessingException exception) {
-            return Flux.empty();
+            return Mono.empty();
         }
     }
 
