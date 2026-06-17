@@ -64,14 +64,19 @@ public class R2dbcBriefingRepository implements BriefingRepository {
     @Override
     public Flux<BriefingListItem> findByUserId(Long userId, int page, int size) {
         return databaseClient.sql("""
-                        SELECT b.briefing_id, b.title, b.summary, b.status, b.generated_at,
+                        WITH page AS (
+                            SELECT briefing_id, title, summary, status, generated_at
+                            FROM briefing
+                            WHERE user_id = :userId
+                            ORDER BY generated_at DESC, briefing_id DESC
+                            LIMIT :limit OFFSET :offset
+                        )
+                        SELECT p.briefing_id, p.title, p.summary, p.status, p.generated_at,
                                COUNT(bi.item_id) AS item_count
-                        FROM briefing b
-                        LEFT JOIN briefing_item bi ON bi.briefing_id = b.briefing_id
-                        WHERE b.user_id = :userId
-                        GROUP BY b.briefing_id, b.title, b.summary, b.status, b.generated_at
-                        ORDER BY b.generated_at DESC, b.briefing_id DESC
-                        LIMIT :limit OFFSET :offset
+                        FROM page p
+                        LEFT JOIN briefing_item bi ON bi.briefing_id = p.briefing_id
+                        GROUP BY p.briefing_id, p.title, p.summary, p.status, p.generated_at
+                        ORDER BY p.generated_at DESC, p.briefing_id DESC
                         """)
                 .bind("userId", userId)
                 .bind("limit", size)

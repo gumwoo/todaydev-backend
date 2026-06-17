@@ -11,6 +11,9 @@
     url: r2dbc:postgresql://localhost:15432/todaydev
     username: todaydev
     password: todaydev
+    pool:
+      initial-size: 10
+      max-size: 50
 
   flyway:
     url: jdbc:postgresql://localhost:15432/todaydev
