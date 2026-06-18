@@ -16,11 +16,14 @@ import com.todaydev.briefing.progress.ProgressStep;
 import com.todaydev.briefing.repository.BriefingRepository;
 import com.todaydev.common.config.properties.BriefingProperties;
 import com.todaydev.external.ExternalArticle;
+import com.todaydev.notification.service.NotificationEnqueueService;
 import com.todaydev.preference.domain.InterestKeyword;
 import com.todaydev.preference.domain.WatchedRepository;
 import com.todaydev.preference.repository.PreferenceRepository;
 import java.util.List;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,6 +32,7 @@ import reactor.util.function.Tuple2;
 @Service
 public class BriefingGenerationService {
 
+    private static final Logger log = LoggerFactory.getLogger(BriefingGenerationService.class);
     private static final String DEFAULT_TITLE = "Todaydev briefing";
 
     private final BriefingLockService lockService;
@@ -39,6 +43,7 @@ public class BriefingGenerationService {
     private final BriefingCandidateFactory candidateFactory;
     private final BriefingDeduplicator deduplicator;
     private final BriefingProgressService progressService;
+    private final NotificationEnqueueService notificationEnqueueService;
     private final BriefingProperties.Collection collection;
 
     public BriefingGenerationService(
@@ -50,6 +55,7 @@ public class BriefingGenerationService {
             BriefingCandidateFactory candidateFactory,
             BriefingDeduplicator deduplicator,
             BriefingProgressService progressService,
+            NotificationEnqueueService notificationEnqueueService,
             BriefingProperties properties
     ) {
         this.lockService = lockService;
@@ -60,6 +66,7 @@ public class BriefingGenerationService {
         this.candidateFactory = candidateFactory;
         this.deduplicator = deduplicator;
         this.progressService = progressService;
+        this.notificationEnqueueService = notificationEnqueueService;
         this.collection = properties.collection();
     }
 
@@ -151,7 +158,16 @@ public class BriefingGenerationService {
                                 DEFAULT_TITLE,
                                 aiSummary.summary()
                         )))
-                .flatMap(briefing -> publishTerminal(briefing, failedSources));
+                .flatMap(briefing -> publishTerminal(briefing, failedSources)
+                        .then(notificationEnqueueService.enqueueForBriefing(briefing)
+                                .onErrorResume(error -> {
+                                    log.warn(
+                                            "Notification enqueue failed: briefingId={}, userId={}",
+                                            briefing.briefingId(), briefing.userId(), error
+                                    );
+                                    return Mono.empty();
+                                }))
+                        .thenReturn(briefing));
     }
 
     private Mono<Void> collectingStarted(Long briefingId) {

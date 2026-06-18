@@ -750,7 +750,146 @@ Response:
 - 존재하지 않거나 권한이 없는 저장 글은 `SAVED_ARTICLE_NOT_FOUND`로 처리한다.
 - `memo`는 최대 1000자이며, 비어 있으면 빈 문자열로 저장할 수 있다.
 
-## 12. 프론트 타입 생성 기준
+## 12. Notification API
+
+인증 필요. 모든 응답은 공통 `ApiResponse<T>` 포맷을 사용한다.
+
+```text
+GET    /api/notifications/me/preferences
+PUT    /api/notifications/me/preferences/{channel}
+DELETE /api/notifications/me/preferences/{channel}
+GET    /api/notifications/me/deliveries?page=0&size=20
+POST   /api/notifications/me/test
+```
+
+Channel:
+
+```text
+EMAIL | SLACK | DISCORD
+```
+
+### GET `/api/notifications/me/preferences`
+
+사용자 알림 설정 목록을 조회한다. destination 원문은 응답하지 않는다.
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "channel": "EMAIL",
+      "enabled": true,
+      "configured": true,
+      "updatedAt": "2026-06-18T21:00:00"
+    }
+  ],
+  "error": null,
+  "timestamp": "2026-06-18T21:00:00+09:00"
+}
+```
+
+### PUT `/api/notifications/me/preferences/{channel}`
+
+설정을 생성하거나 갱신한다.
+
+Request:
+
+```json
+{
+  "destination": "user@example.com",
+  "enabled": true
+}
+```
+
+채널별 destination:
+
+- `EMAIL`: 이메일 주소
+- `SLACK`: Slack incoming webhook URL
+- `DISCORD`: Discord webhook URL
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "channel": "EMAIL",
+    "enabled": true,
+    "configured": true,
+    "updatedAt": "2026-06-18T21:00:00"
+  },
+  "timestamp": "2026-06-18T21:00:00+09:00"
+}
+```
+
+### DELETE `/api/notifications/me/preferences/{channel}`
+
+설정을 삭제한다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "deleted": true
+  },
+  "timestamp": "2026-06-18T21:00:00+09:00"
+}
+```
+
+### GET `/api/notifications/me/deliveries`
+
+발송 이력을 최신순으로 조회한다.
+
+```json
+{
+  "success": true,
+  "data": {
+    "items": [
+      {
+        "deliveryId": 1,
+        "briefingId": 10,
+        "channel": "SLACK",
+        "status": "SENT",
+        "attemptCount": 1,
+        "queuedAt": "2026-06-18T21:00:00",
+        "sentAt": "2026-06-18T21:00:02",
+        "updatedAt": "2026-06-18T21:00:02"
+      }
+    ],
+    "page": 0,
+    "size": 20,
+    "totalElements": 1,
+    "totalPages": 1,
+    "hasNext": false
+  },
+  "timestamp": "2026-06-18T21:00:00+09:00"
+}
+```
+
+### POST `/api/notifications/me/test`
+
+등록된 설정으로 테스트 알림을 발송한다.
+
+```json
+{
+  "channel": "DISCORD"
+}
+```
+
+관련 ErrorCode:
+
+```text
+NOTIFICATION_PREFERENCE_NOT_FOUND
+NOTIFICATION_CHANNEL_UNSUPPORTED
+NOTIFICATION_DESTINATION_INVALID
+NOTIFICATION_DELIVERY_NOT_FOUND
+NOTIFICATION_PUBLISH_FAILED
+NOTIFICATION_SEND_FAILED
+NOTIFICATION_RATE_LIMITED
+NOTIFICATION_DLQ_PUBLISHED
+```
+
+## 13. 프론트 타입 생성 기준
 
 프론트는 이 계약을 기준으로 타입을 만든다.
 
@@ -783,7 +922,7 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - error code는 문자열 비교를 흩뿌리지 않고 상수로 관리한다.
 - 백엔드 DTO 변경 시 프론트 타입도 함께 수정한다.
 
-## 13. 변경 관리
+## 14. 변경 관리
 
 - 이 문서 변경은 API breaking change로 간주한다.
 - endpoint, field name, enum, error code 변경 시 백엔드/프론트 문서를 모두 수정한다.
@@ -806,4 +945,3 @@ type ApiResponse<T> = ApiSuccess<T> | ApiError;
 - `allow-credentials=true`를 사용하는 경우 `allowed-origins=*`는 허용하지 않는다.
 - 운영에서는 실제 프론트 URL만 origin으로 등록한다.
 - Authorization header, refresh token, stream token, API key는 URL/query/log/response DTO에 넣지 않는다.
-

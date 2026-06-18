@@ -44,7 +44,16 @@ public enum ErrorCode {
 
     STREAM_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "스트림 토큰이 올바르지 않습니다."),
     STREAM_TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "스트림 토큰이 만료되었습니다."),
-    STREAM_NOT_FOUND(HttpStatus.NOT_FOUND, "스트림을 찾을 수 없습니다.");
+    STREAM_NOT_FOUND(HttpStatus.NOT_FOUND, "스트림을 찾을 수 없습니다."),
+
+    NOTIFICATION_PREFERENCE_NOT_FOUND(HttpStatus.NOT_FOUND, "알림 설정을 찾을 수 없습니다."),
+    NOTIFICATION_CHANNEL_UNSUPPORTED(HttpStatus.BAD_REQUEST, "지원하지 않는 알림 채널입니다."),
+    NOTIFICATION_DESTINATION_INVALID(HttpStatus.BAD_REQUEST, "알림 수신 정보가 올바르지 않습니다."),
+    NOTIFICATION_DELIVERY_NOT_FOUND(HttpStatus.NOT_FOUND, "알림 발송 이력을 찾을 수 없습니다."),
+    NOTIFICATION_PUBLISH_FAILED(HttpStatus.BAD_GATEWAY, "알림 발행에 실패했습니다."),
+    NOTIFICATION_SEND_FAILED(HttpStatus.BAD_GATEWAY, "알림 발송에 실패했습니다."),
+    NOTIFICATION_RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "알림 발송 한도를 초과했습니다."),
+    NOTIFICATION_DLQ_PUBLISHED(HttpStatus.ACCEPTED, "알림이 DLQ로 이동했습니다.");
 
     private final HttpStatus httpStatus;
     private final String message;

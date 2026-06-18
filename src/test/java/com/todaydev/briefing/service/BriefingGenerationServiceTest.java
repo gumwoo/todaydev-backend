@@ -19,6 +19,7 @@ import com.todaydev.briefing.repository.BriefingRepository;
 import com.todaydev.common.config.properties.BriefingProperties;
 import com.todaydev.external.ExternalArticle;
 import com.todaydev.external.ExternalSource;
+import com.todaydev.notification.service.NotificationEnqueueService;
 import com.todaydev.preference.domain.InterestKeyword;
 import com.todaydev.preference.domain.WatchedRepository;
 import com.todaydev.preference.repository.PreferenceRepository;
@@ -91,6 +92,8 @@ class BriefingGenerationServiceTest {
         private final ExternalArticleCollector articleCollector = mock(ExternalArticleCollector.class);
         private final AiSummaryService aiSummaryService = mock(AiSummaryService.class);
         private final BriefingProgressService progressService = mock(BriefingProgressService.class);
+        private final NotificationEnqueueService notificationEnqueueService =
+                mock(NotificationEnqueueService.class);
         private final BriefingGenerationJob job = new BriefingGenerationJob(
                 1L, 100L, new BriefingLockService.BriefingLock("lock"));
         private final BriefingGenerationService service;
@@ -104,6 +107,7 @@ class BriefingGenerationServiceTest {
 
             when(lockService.release(any())).thenReturn(Mono.empty());
             when(progressService.publish(any())).thenReturn(Mono.empty());
+            when(notificationEnqueueService.enqueueForBriefing(any())).thenReturn(Mono.empty());
             when(preferenceRepository.findKeywordsByUserId(1L)).thenReturn(Flux.just(
                     new InterestKeyword(1L, 1L, "webflux", 5, null)
             ));
@@ -129,6 +133,7 @@ class BriefingGenerationServiceTest {
                     ),
                     new BriefingDeduplicator(),
                     progressService,
+                    notificationEnqueueService,
                     properties
             );
         }
